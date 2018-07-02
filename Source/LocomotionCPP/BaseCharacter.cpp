@@ -8,14 +8,16 @@
 ABaseCharacter::ABaseCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
+	PrimaryActorTick.bCanEverTick = true;	
 }
 
 // Called when the game starts or when spawned
 void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	FRotator ActorRotation = GetActorRotation();
+	UE_LOG(LogTemp, Warning, TEXT("Actor Rotation: %s"), *ActorRotation.ToString())
 	
 }
 

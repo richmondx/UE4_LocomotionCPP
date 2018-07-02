@@ -37,6 +37,7 @@ public:
 	// essential variables
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Essential Variables")
 	FVector MovementInput;
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Essential Variables")
 	float AimYawDelta;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Essential Variables")
@@ -47,6 +48,8 @@ public:
 	float TargetAndCharacterRotationDiff;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Essential Variables")
 	float Direction;
+
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Essential Variables")
 	FRotator CharacterRotation;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Essential Variables")
@@ -55,6 +58,8 @@ public:
 	FRotator LastVelocityRotation;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Essential Variables")
 	FRotator LastMovementInputRotation;
+
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Essential Variables")
 	bool IsMoving;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Essential Variables")
