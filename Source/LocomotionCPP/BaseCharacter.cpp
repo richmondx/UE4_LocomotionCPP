@@ -2,13 +2,40 @@
 
 #include "BaseCharacter.h"
 #include "Enums/Enums.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 
 // Sets default values
 ABaseCharacter::ABaseCharacter()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;	
+	PrimaryActorTick.bCanEverTick = true;
+
+	PlayerRole = EPlayerRole::Goalkeeper;
+	PlayerTeam = EPlayerTeam::Team1;
+	PlayerRotationMode = ELocomotion_RotationMode::VelocityDirection;
+	PlayerGait = ELocomotion_Gait::Walking;
+	Aiming = false;
+
+
+	// Setting Default values for essential variables
+	FRotator ActorRotation = GetActorRotation();
+	LastVelocityRotation = ActorRotation;
+	LookingRotation = ActorRotation;
+	LastMovementInputRotation = ActorRotation;
+	CharacterRotation = ActorRotation;
+	TargetRotation = ActorRotation;
+
+	WalkingSpeed = 165.0f;
+	RunningSpeed = 375.0f;
+	SprintingSpeed = 600.0f;
+	WalkingAcceleration = 800.0f;
+	RunningAcceleration = 1000.0f;
+	WalkingDeceleration = RunningDeceleration = 800.0f;
+	WalkingGroundFriction = 8.0f;
+	RunningGroundFriction = 6.0f;
+
+	UpdateCharacterMovementSettings();
 }
 
 // Called when the game starts or when spawned
@@ -16,8 +43,6 @@ void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FRotator ActorRotation = GetActorRotation();
-	UE_LOG(LogTemp, Warning, TEXT("Actor Rotation: %s"), *ActorRotation.ToString())
 	
 }
 
@@ -26,6 +51,8 @@ void ABaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	CalculateEssentialVariables();
+
 }
 
 // Called to bind functionality to input
@@ -33,5 +60,115 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+}
+
+void ABaseCharacter::UpdateCharacterMovementSettings()
+{
+	GetCharacterMovement()->MaxWalkSpeed = ChooseMaxWalkSpeed();
+	GetCharacterMovement()->MaxAcceleration = ChooseMaxAcceleration();
+	GetCharacterMovement()->BrakingDecelerationWalking = ChooseBrakingDeceleration();
+	GetCharacterMovement()->GroundFriction = ChooseGroundFriction();
+}
+
+float ABaseCharacter::ChooseMaxWalkSpeed()
+{
+	if (Aiming)
+	{
+		switch (PlayerGait)
+		{
+			case ELocomotion_Gait::Walking:
+			case ELocomotion_Gait::Running:
+				return WalkingSpeed;
+			case ELocomotion_Gait::Sprinting:
+				return RunningSpeed;
+			default:
+				return 0.0f;
+		}
+	}
+	else
+	{
+		switch (PlayerGait)
+		{
+		case ELocomotion_Gait::Walking:
+			return WalkingSpeed;
+		case ELocomotion_Gait::Running:
+			return RunningSpeed;
+		case ELocomotion_Gait::Sprinting:
+			return SprintingSpeed;
+		default:
+			return 0.0f;
+		}
+	}
+}
+
+float ABaseCharacter::ChooseMaxAcceleration()
+{
+	switch (PlayerGait)
+	{
+		case ELocomotion_Gait::Walking:
+			return WalkingAcceleration;
+		case ELocomotion_Gait::Running:
+		case ELocomotion_Gait::Sprinting:
+			return RunningAcceleration;
+		default:
+			return 0.0f;
+	}
+}
+
+float ABaseCharacter::ChooseBrakingDeceleration()
+{
+	switch (PlayerGait)
+	{
+		case ELocomotion_Gait::Walking:
+			return WalkingDeceleration;
+		case ELocomotion_Gait::Running:
+		case ELocomotion_Gait::Sprinting:
+			return RunningDeceleration;
+		default:
+			return 0.0f;
+	}
+}
+
+float ABaseCharacter::ChooseGroundFriction()
+{
+	switch (PlayerGait)
+	{
+		case ELocomotion_Gait::Walking:
+			return WalkingGroundFriction;
+		case ELocomotion_Gait::Running:
+		case ELocomotion_Gait::Sprinting:
+			return RunningGroundFriction;
+		default:
+			return 0.0f;
+	}
+	
+}
+
+void ABaseCharacter::CalculateEssentialVariables()
+{
+	IsMoving = !GetVelocity().Equals(FVector{ 0 }, 1.0f);
+
+	// Determine if the Character is moving, 
+	// then sets the 'Last Velocity Rotation' and 'Direction' only when moving to prevent them 
+	// from returning to 0 when velocity is 0.
+	if (IsMoving)
+	{
+		LastVelocityRotation = FRotationMatrix::MakeFromX(GetVelocity()).Rotator();
+		Direction = (LastVelocityRotation - CharacterRotation).Yaw;
+	}
+	else
+	{
+		// Determine if there is Movement Input, and if there is, 
+		// set 'Last Movement Input Rotation' and 'Movement Input / Velocity Difference' to prevent them
+		// from returning to 0 when Movement Input is 0.
+		HasMovementInput = !MovementInput.Equals(FVector{ 0 }, 1.0f);
+		if (HasMovementInput)
+		{
+			LastMovementInputRotation = FRotationMatrix::MakeFromX(MovementInput).Rotator();
+			MovementInputVelocityDiff = (LastMovementInputRotation - LastVelocityRotation).Yaw;
+		}
+	}
+
+	AimYawDelta = (LookingRotation - CharacterRotation).Yaw;
 }
 
