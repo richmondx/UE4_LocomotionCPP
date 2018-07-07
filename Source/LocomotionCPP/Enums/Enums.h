@@ -44,3 +44,10 @@ enum class ELocomotion_CardinalDirection : uint8
 	West UMETA(DisplayName = "West"),
 	South UMETA(DisplayName = "South"),
 };
+
+
+template<typename T>
+bool DoIfDifferent(T A, T B)
+{
+	return A != B;
+}

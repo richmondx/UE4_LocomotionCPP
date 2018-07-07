@@ -4,6 +4,9 @@
 #include "Enums/Enums.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Runtime/Engine/Classes/Components/InputComponent.h"
+#include "Runtime/Engine/Classes/Components/SkeletalMeshComponent.h"
+#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
 
 
 // Sets default values
@@ -14,9 +17,11 @@ ABaseCharacter::ABaseCharacter()
 
 	PlayerRole = EPlayerRole::Goalkeeper;
 	PlayerTeam = EPlayerTeam::Team1;
+	PlayerCardinalDirection = ELocomotion_CardinalDirection::North;
 	PlayerRotationMode = ELocomotion_RotationMode::VelocityDirection;
 	PlayerGait = ELocomotion_Gait::Walking;
 	Aiming = false;
+	ShouldSprint = false;
 
 
 	// Setting Default values for essential variables
@@ -37,6 +42,7 @@ ABaseCharacter::ABaseCharacter()
 	RunningGroundFriction = 6.0f;
 
 	UpdateCharacterMovementSettings();
+
 }
 
 // Called when the game starts or when spawned
@@ -44,7 +50,8 @@ void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	
+
+	OnRotationModeChanged();
 }
 
 // Called every frame
@@ -53,6 +60,8 @@ void ABaseCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	CalculateEssentialVariables();
+	CustomAcceleration();
+
 
 }
 
@@ -66,6 +75,8 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("Kick", IE_Pressed, this, &ABaseCharacter::OnKick);
 	PlayerInputComponent->BindAction("LongPass", IE_Pressed, this, &ABaseCharacter::OnLongPass);
 	PlayerInputComponent->BindAction("AirPass", IE_Pressed, this, &ABaseCharacter::OnAirPass);
+	PlayerInputComponent->BindAction("Sprint", IE_Repeat, this, &ABaseCharacter::OnSprint);
+	PlayerInputComponent->BindAction("ChangePlayer", IE_Pressed, this, &ABaseCharacter::OnChangePlayer);
 
 	// Binding axis actions
 	PlayerInputComponent->BindAxis("MoveFWD/BWD", this, &ABaseCharacter::OnMoveLeftRight);
@@ -79,6 +90,25 @@ void ABaseCharacter::UpdateCharacterMovementSettings()
 	GetCharacterMovement()->MaxAcceleration = ChooseMaxAcceleration();
 	GetCharacterMovement()->BrakingDecelerationWalking = ChooseBrakingDeceleration();
 	GetCharacterMovement()->GroundFriction = ChooseGroundFriction();
+}
+
+void ABaseCharacter::CustomAcceleration()
+{
+	GetCharacterMovement()->MaxAcceleration = RunningAcceleration * FMath::GetMappedRangeValueClamped(FVector2D{ 45.0f, 130.0f }, FVector2D{ 1.0f, 0.2f }, FMath::Abs(MovementInputVelocityDiff));
+	GetCharacterMovement()->GroundFriction = RunningGroundFriction * FMath::GetMappedRangeValueClamped(FVector2D{ 45.0f, 130.0f }, FVector2D{ 1.0f, 0.4f }, FMath::Abs(MovementInputVelocityDiff));
+}
+
+void ABaseCharacter::SprintCheck()
+{
+	// todo
+	if (ShouldSprint)
+	{
+
+	}
+	else
+	{
+
+	}
 }
 
 float ABaseCharacter::ChooseMaxWalkSpeed()
@@ -183,6 +213,234 @@ void ABaseCharacter::CalculateEssentialVariables()
 	AimYawDelta = (LookingRotation - CharacterRotation).Yaw;
 }
 
+void ABaseCharacter::ManageCharacterRotation()
+{
+	if (IsMoving)
+	{
+		auto TargetRot = LookingDirectionWithOffset(5.0f, 60.0f, -60.0f, 120.0f, -120.0f, 5.0f);
+
+		switch (PlayerRotationMode)
+		{
+			case ELocomotion_RotationMode::LookingDirection:
+			{
+				if (Aiming)
+				{
+					auto RotationRate = CalculateRotationRate(165.f, 15.f, 375.f, 15.f);
+					SetCharacterRotation(TargetRot, true, RotationRate);
+				}
+				else
+				{
+					auto RotationRate = CalculateRotationRate(165.f, 10.f, 375.f, 15.f);
+					SetCharacterRotation(TargetRot, true, RotationRate);
+				}
+				break;
+			}
+			case ELocomotion_RotationMode::VelocityDirection:
+			{
+				auto RotationRate = CalculateRotationRate(165.f, 5.f, 375.f, 10.f);
+				SetCharacterRotation(FRotator{ 0.0f, 0.0f, LastVelocityRotation.Yaw }, true, RotationRate);
+				break;
+			}
+			default:
+				break;
+		}
+	}
+	else
+	{
+		if (!IsPlayingRootMotion() && PlayerRotationMode == ELocomotion_RotationMode::LookingDirection && Aiming)
+		{
+			LimitRotation(90.0f, 15.0f);	
+		}
+	}
+}
+
+FRotator ABaseCharacter::LookingDirectionWithOffset(float OffsetInterpSpeed, float NE_Angle, float NW_Angle, float SE_Angle, float SW_Angle, float Buffer)
+{
+	FRotator TargetRotation{0.0f, 0.0f, 0.0f};
+	float RotDeltaYaw = (HasMovementInput) ? (LastMovementInputRotation - LookingRotation).Yaw : (LastVelocityRotation - LookingRotation).Yaw;
+
+	if (CardinalDirectionAngles(RotDeltaYaw, NW_Angle, NE_Angle, Buffer, ELocomotion_CardinalDirection::North))
+	{
+		PlayerCardinalDirection = ELocomotion_CardinalDirection::North;
+	}
+	else if (CardinalDirectionAngles(RotDeltaYaw, NE_Angle, SE_Angle, Buffer, ELocomotion_CardinalDirection::East))
+	{
+		PlayerCardinalDirection = ELocomotion_CardinalDirection::East;
+	}
+	else if (CardinalDirectionAngles(RotDeltaYaw, SW_Angle, NW_Angle, Buffer, ELocomotion_CardinalDirection::West))
+	{
+		PlayerCardinalDirection = ELocomotion_CardinalDirection::West;
+	}
+	else
+	{
+		PlayerCardinalDirection = ELocomotion_CardinalDirection::South;
+	}
+
+	// Based On Direction Calculation RotationOffset
+	float DirectionTargetOffset;
+	switch (PlayerCardinalDirection)
+	{
+		case ELocomotion_CardinalDirection::North:
+			DirectionTargetOffset = RotDeltaYaw;
+			break;
+		case ELocomotion_CardinalDirection::East:
+			DirectionTargetOffset = RotDeltaYaw - 90.0f;
+			break;
+		case ELocomotion_CardinalDirection::West:
+			DirectionTargetOffset = RotDeltaYaw + 90.0f;
+			break;
+		case ELocomotion_CardinalDirection::South:
+			DirectionTargetOffset = (RotDeltaYaw > 0.0f) ? RotDeltaYaw - 180.0f : RotDeltaYaw + 180.0f;
+			break;
+	}
+
+	auto World = GetWorld();
+	if (World)
+	{
+		RotationOffset = FMath::FInterpTo(RotationOffset, DirectionTargetOffset, GetWorld()->GetDeltaSeconds(), OffsetInterpSpeed);
+	}
+
+	TargetRotation.Yaw = LookingRotation.Yaw + RotationOffset;
+	
+	return TargetRotation;
+}
+
+void ABaseCharacter::SetCharacterRotation(FRotator TargetRot, bool InterpRotation, float InterpSpeed)
+{
+	TargetRotation = TargetRot;
+	TargetAndCharacterRotationDiff = (TargetRotation - CharacterRotation).Yaw;
+	if (InterpRotation)
+	{
+		if (InterpSpeed != 0.0)
+		{
+			auto World = GetWorld();
+			if (World)
+			{				
+				CharacterRotation = FMath::RInterpTo(CharacterRotation, TargetRotation, UGameplayStatics::GetWorldDeltaSeconds(World), InterpSpeed);
+			}
+		}
+	}
+	else
+	{
+		CharacterRotation = TargetRotation;
+	}
+
+	SetActorRotation(CharacterRotation);
+}
+
+void ABaseCharacter::AddCharacterRotation(FRotator AddAmount)
+{
+	TargetRotation = TargetRotation - AddAmount.GetInverse();
+	TargetAndCharacterRotationDiff = (TargetRotation - CharacterRotation).Yaw;
+	CharacterRotation = CharacterRotation - AddAmount.GetInverse();
+	SetActorRotation(CharacterRotation);
+}
+
+float ABaseCharacter::CalculateRotationRate(float SlowSpeed, float SlowSpeedRate, float FastSpeed, float FastSpeedRate)
+{
+	FVector Velocity = FVector{ GetVelocity().X, GetVelocity().Y, 0.0f };
+	float VelocitySize = Velocity.Size();
+	float result;
+
+	if (VelocitySize > SlowSpeed)
+	{
+		result = FMath::GetMappedRangeValueUnclamped(FVector2D{ SlowSpeed, FastSpeed }, FVector2D{ SlowSpeedRate, FastSpeedRate }, VelocitySize);
+	}
+	else
+	{
+		result = FMath::GetMappedRangeValueClamped(FVector2D{ 0.0f,SlowSpeed }, FVector2D{ 0.0f,SlowSpeedRate }, VelocitySize);
+	}
+
+
+	if (RotationRateMultiplier == 1.0f)
+	{
+		result *= RotationRateMultiplier;
+	}
+	else
+	{
+		auto World = GetWorld();
+		if (World)
+		{
+			RotationRateMultiplier = FMath::Clamp(RotationRateMultiplier + World->GetDeltaSeconds(), 0.0f, 1.0f);
+		}
+	}
+
+	
+	return FMath::Clamp(result, 0.1f, 15.0f);
+}
+
+void ABaseCharacter::LimitRotation(float AimYawLimit, float InterpSpeed)
+{
+	if (FMath::Abs(AimYawDelta) > AimYawLimit)
+	{
+		FRotator TargetRot;
+		TargetRot.Yaw = AimYawDelta > 0.0f ? LookingRotation.Yaw + AimYawLimit : LookingRotation.Yaw - AimYawLimit;
+		SetCharacterRotation(TargetRot, true, InterpSpeed);
+	}
+}
+
+void ABaseCharacter::OnRotationModeChanged_Implementation()
+{
+	if (IsMoving)
+	{
+		RotationRateMultiplier = 0.0f;
+	}
+}
+
+void ABaseCharacter::SetGaitEvent_Implementation(ELocomotion_Gait Gait)
+{
+	if (DoIfDifferent(PlayerGait, Gait))
+	{
+		PlayerGait = Gait;
+		UpdateCharacterMovementSettings();
+	}
+}
+
+void ABaseCharacter::SetRotationModeEvent_Implementation(ELocomotion_RotationMode RotMode)
+{
+	if (DoIfDifferent(PlayerRotationMode, RotMode))
+	{
+		PlayerRotationMode = RotMode;
+		OnRotationModeChanged();
+	}
+}
+
+void ABaseCharacter::SetAimingModeEvent_Implementation(bool NewAiming)
+{
+	if (DoIfDifferent(Aiming, NewAiming))
+	{
+		Aiming = NewAiming;
+		UpdateCharacterMovementSettings();
+	}
+}
+
+void ABaseCharacter::SetWalkingSpeedEvent_Implementation(float NewWalkingSpeed)
+{
+	if (DoIfDifferent(WalkingSpeed, NewWalkingSpeed))
+	{
+		WalkingSpeed = NewWalkingSpeed;
+		UpdateCharacterMovementSettings();
+	}
+}
+
+void ABaseCharacter::SetRunningSpeedEvent_Implementation(float NewRunningSpeed)
+{
+	if (DoIfDifferent(RunningSpeed, NewRunningSpeed))
+	{
+		RunningSpeed = NewRunningSpeed;
+		UpdateCharacterMovementSettings();
+	}
+}
+
+void ABaseCharacter::SetSprintingSpeedEvent_Implementation(float NewSprintingSpeed)
+{
+	if (DoIfDifferent(SprintingSpeed, NewSprintingSpeed))
+	{
+		SprintingSpeed = NewSprintingSpeed;
+		UpdateCharacterMovementSettings();
+	}
+}
+
 void ABaseCharacter::OnPass()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Passing!!"));
@@ -203,13 +461,35 @@ void ABaseCharacter::OnAirPass()
 	UE_LOG(LogTemp, Warning, TEXT("AirPass!!"));
 }
 
+void ABaseCharacter::OnSprint()
+{
+	UE_LOG(LogTemp, Warning, TEXT("On Sprint !!"));
+}
+
+void ABaseCharacter::OnChangePlayer()
+{
+	UE_LOG(LogTemp, Warning, TEXT("On Player Change!!"));
+}
+
 void ABaseCharacter::OnMoveUpDown(float AxisValue)
 {
-	//UE_LOG(LogTemp, Warning, TEXT("MoveUpDown!! %f"), AxisValue);
+	AddMovementInput(FVector{ 0.0f, -1.0f, 0.0f }, AxisValue);
 }
 
 void ABaseCharacter::OnMoveLeftRight(float AxisValue)
 {
-	//UE_LOG(LogTemp, Warning, TEXT("LeftRight!! %f"), AxisValue);
+	AddMovementInput(FVector{ 1.0f, 0.0f, 0.0f }, AxisValue);
+}
+
+bool ABaseCharacter::CardinalDirectionAngles(float Value, float Min, float Max, float Buffer, ELocomotion_CardinalDirection CardinalDirection)
+{
+	if (PlayerCardinalDirection == CardinalDirection)
+	{
+		return UKismetMathLibrary::InRange_FloatFloat(Value, Min - Buffer, Max + Buffer);
+	}
+	else
+	{
+		return UKismetMathLibrary::InRange_FloatFloat(Value, Min + Buffer, Max - Buffer);
+	}
 }
 
