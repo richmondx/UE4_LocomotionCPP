@@ -124,5 +124,13 @@ private:
 	float ChooseBrakingDeceleration();
 	float ChooseGroundFriction();
 	void CalculateEssentialVariables();
-	
+protected:
+	// input component functions
+	void OnPass();
+	void OnKick();
+	void OnLongPass();
+	void OnAirPass();
+	void OnMoveUpDown(float AxisValue);
+	void OnMoveLeftRight(float AxisValue);
+
 };

@@ -35,3 +35,12 @@ enum class ELocomotion_RotationMode : uint8
 	LookingDirection UMETA(DisplayName = "LookingDirection"),
 	VelocityDirection UMETA(DisplayName = "VelocityDirection"),
 };
+
+UENUM(BlueprintType)
+enum class ELocomotion_CardinalDirection : uint8
+{
+	North UMETA(DisplayName = "North"),
+	East UMETA(DisplayName = "East"),
+	West UMETA(DisplayName = "West"),
+	South UMETA(DisplayName = "South"),
+};

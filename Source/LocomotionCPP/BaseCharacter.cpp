@@ -3,6 +3,7 @@
 #include "BaseCharacter.h"
 #include "Enums/Enums.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Runtime/Engine/Classes/Components/InputComponent.h"
 
 
 // Sets default values
@@ -59,6 +60,16 @@ void ABaseCharacter::Tick(float DeltaTime)
 void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	// Binding actions
+	PlayerInputComponent->BindAction("Pass", IE_Pressed, this, &ABaseCharacter::OnPass);
+	PlayerInputComponent->BindAction("Kick", IE_Pressed, this, &ABaseCharacter::OnKick);
+	PlayerInputComponent->BindAction("LongPass", IE_Pressed, this, &ABaseCharacter::OnLongPass);
+	PlayerInputComponent->BindAction("AirPass", IE_Pressed, this, &ABaseCharacter::OnAirPass);
+
+	// Binding axis actions
+	PlayerInputComponent->BindAxis("MoveFWD/BWD", this, &ABaseCharacter::OnMoveLeftRight);
+	PlayerInputComponent->BindAxis("MoveUp/Down", this, &ABaseCharacter::OnMoveUpDown);
 
 }
 
@@ -170,5 +181,35 @@ void ABaseCharacter::CalculateEssentialVariables()
 	}
 
 	AimYawDelta = (LookingRotation - CharacterRotation).Yaw;
+}
+
+void ABaseCharacter::OnPass()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Passing!!"));
+}
+
+void ABaseCharacter::OnKick()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Kick!!"));
+}
+
+void ABaseCharacter::OnLongPass()
+{
+	UE_LOG(LogTemp, Warning, TEXT("LongPass!!"));
+}
+
+void ABaseCharacter::OnAirPass()
+{
+	UE_LOG(LogTemp, Warning, TEXT("AirPass!!"));
+}
+
+void ABaseCharacter::OnMoveUpDown(float AxisValue)
+{
+	//UE_LOG(LogTemp, Warning, TEXT("MoveUpDown!! %f"), AxisValue);
+}
+
+void ABaseCharacter::OnMoveLeftRight(float AxisValue)
+{
+	//UE_LOG(LogTemp, Warning, TEXT("LeftRight!! %f"), AxisValue);
 }
 
