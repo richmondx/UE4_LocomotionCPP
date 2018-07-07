@@ -28,12 +28,13 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Player Info")
 	EPlayerTeam PlayerTeam;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Player Info")
 	EPlayerRole PlayerRole;
+
+	struct FLocomotionData* LocomotionData;
 
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Input")

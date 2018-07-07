@@ -24,6 +24,7 @@ ABaseCharacter::ABaseCharacter()
 	ShouldSprint = false;
 
 
+
 	// Setting Default values for essential variables
 	FRotator ActorRotation = GetActorRotation();
 	LastVelocityRotation = ActorRotation;
