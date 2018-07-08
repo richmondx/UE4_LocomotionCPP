@@ -45,6 +45,13 @@ enum class ELocomotion_CardinalDirection : uint8
 	South UMETA(DisplayName = "South"),
 };
 
+UENUM(BlueprintType)
+enum class ELocomotion_MovementDirection : uint8
+{
+	Forwards UMETA(DisplayName = "Forwards"),
+	Backwards UMETA(DisplayName = "Backwards"),
+};
+
 
 template<typename T>
 bool DoIfDifferent(T A, T B)
