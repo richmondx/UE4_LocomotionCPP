@@ -475,14 +475,12 @@ void ABaseCharacter::OnAirPass()
 
 void ABaseCharacter::OnSprintPressed()
 {
-	UE_LOG(LogTemp, Warning, TEXT("On Sprint Pressed!!"));
-	PlayerGait = ELocomotion_Gait::Walking;
+	SetGaitEvent(ELocomotion_Gait::Sprinting);
 }
 
 void ABaseCharacter::OnSprintReleased()
 {
-	PlayerGait = ELocomotion_Gait::Running;
-	UE_LOG(LogTemp, Warning, TEXT("On Sprint Released!!"));
+	SetGaitEvent(ELocomotion_Gait::Running);
 }
 
 void ABaseCharacter::OnChangePlayer()
