@@ -52,6 +52,16 @@ enum class ELocomotion_MovementDirection : uint8
 	Backwards UMETA(DisplayName = "Backwards"),
 };
 
+UENUM(BlueprintType)
+enum class ELocomotion_State : uint8
+{
+	None UMETA(DisplayName = "None"),
+	NotMoving UMETA(DisplayName = "NotMoving"),
+	Moving UMETA(DisplayName = "Moving"),
+	Pivot UMETA(DisplayName = "Pivot"),
+	Stopping UMETA(DisplayName = "Stopping"),
+};
+
 
 template<typename T>
 bool DoIfDifferent(T A, T B)

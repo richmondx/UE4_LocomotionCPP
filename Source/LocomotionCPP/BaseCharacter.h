@@ -34,8 +34,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Player Info")
 	EPlayerRole PlayerRole;
 
-	struct FLocomotionData* LocomotionData;
-
 public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Input")
 	bool ShouldSprint;
