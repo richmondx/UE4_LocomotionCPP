@@ -205,7 +205,8 @@ protected:
 	void OnKick();
 	void OnLongPass();
 	void OnAirPass();
-	void OnSprint();
+	void OnSprintPressed();
+	void OnSprintReleased();
 	void OnChangePlayer();
 	void OnMoveUpDown(float AxisValue);
 	void OnMoveLeftRight(float AxisValue);

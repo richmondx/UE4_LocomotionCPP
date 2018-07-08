@@ -18,7 +18,7 @@ ABaseCharacter::ABaseCharacter()
 	PlayerRole = EPlayerRole::Goalkeeper;
 	PlayerTeam = EPlayerTeam::Team1;
 	PlayerCardinalDirection = ELocomotion_CardinalDirection::North;
-	PlayerRotationMode = ELocomotion_RotationMode::VelocityDirection;
+	PlayerRotationMode = ELocomotion_RotationMode::LookingDirection;
 	PlayerGait = ELocomotion_Gait::Walking;
 	Aiming = false;
 	ShouldSprint = false;
@@ -76,7 +76,8 @@ void ABaseCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("Kick", IE_Pressed, this, &ABaseCharacter::OnKick);
 	PlayerInputComponent->BindAction("LongPass", IE_Pressed, this, &ABaseCharacter::OnLongPass);
 	PlayerInputComponent->BindAction("AirPass", IE_Pressed, this, &ABaseCharacter::OnAirPass);
-	PlayerInputComponent->BindAction("Sprint", IE_Repeat, this, &ABaseCharacter::OnSprint);
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &ABaseCharacter::OnSprintPressed);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &ABaseCharacter::OnSprintReleased);
 	PlayerInputComponent->BindAction("ChangePlayer", IE_Pressed, this, &ABaseCharacter::OnChangePlayer);
 
 	// Binding axis actions
@@ -190,6 +191,17 @@ void ABaseCharacter::CalculateEssentialVariables()
 {
 	IsMoving = !GetVelocity().Equals(FVector{ 0 }, 1.0f);
 
+	auto World = GetWorld();
+	float PrevAimYaw = LookingRotation.Yaw;
+	LookingRotation = GetControlRotation();
+	MovementInput = GetCharacterMovement()->GetLastInputVector();
+
+	if (World)
+	{
+		AimYawRate = (LookingRotation.Yaw - PrevAimYaw) / World->GetDeltaSeconds();
+	}
+
+	HasMovementInput = !MovementInput.Equals(FVector{ 0 }, 0.0001f);
 	// Determine if the Character is moving, 
 	// then sets the 'Last Velocity Rotation' and 'Direction' only when moving to prevent them 
 	// from returning to 0 when velocity is 0.
@@ -202,8 +214,7 @@ void ABaseCharacter::CalculateEssentialVariables()
 	{
 		// Determine if there is Movement Input, and if there is, 
 		// set 'Last Movement Input Rotation' and 'Movement Input / Velocity Difference' to prevent them
-		// from returning to 0 when Movement Input is 0.
-		HasMovementInput = !MovementInput.Equals(FVector{ 0 }, 1.0f);
+		// from returning to 0 when Movement Input is 0.		
 		if (HasMovementInput)
 		{
 			LastMovementInputRotation = FRotationMatrix::MakeFromX(MovementInput).Rotator();
@@ -462,9 +473,16 @@ void ABaseCharacter::OnAirPass()
 	UE_LOG(LogTemp, Warning, TEXT("AirPass!!"));
 }
 
-void ABaseCharacter::OnSprint()
+void ABaseCharacter::OnSprintPressed()
 {
-	UE_LOG(LogTemp, Warning, TEXT("On Sprint !!"));
+	UE_LOG(LogTemp, Warning, TEXT("On Sprint Pressed!!"));
+	PlayerGait = ELocomotion_Gait::Walking;
+}
+
+void ABaseCharacter::OnSprintReleased()
+{
+	PlayerGait = ELocomotion_Gait::Running;
+	UE_LOG(LogTemp, Warning, TEXT("On Sprint Released!!"));
 }
 
 void ABaseCharacter::OnChangePlayer()
